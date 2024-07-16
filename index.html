@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PikaNetwork API Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .profile-data {
+            border: 1px solid #ccc;
+            background-color: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+        input[type="text"], select {
+            padding: 10px;
+            font-size: 16px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        label {
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        h3 {
+            color: #888;
+            margin-bottom: 8px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul li {
+            margin-bottom: 5px;
+        }
+        a {
+            color: #4CAF50;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>PikaNetwork API Demo</h1>
+    <div>
+        <label for="playerIGN">Enter Player's IGN:</label>
+        <input type="text" id="playerIGN" placeholder="Enter player's IGN...">
+        <button onclick="fetchProfileData()">Fetch Profile</button>
+    </div>
+    
+    <div id="profileData" class="profile-data">
+        Enter a player's IGN above to fetch their profile data.
+    </div>
+
+    <div>
+        <h2>Leaderboards</h2>
+        <label for="gameMode">Select Game Mode:</label>
+        <select id="gameMode">
+            <option value="bedwars">Bedwars</option>
+            <option value="skywars">Skywars</option>
+        </select>
+        <label for="stat">Select Stat:</label>
+        <select id="stat">
+            <option value="played">Games Played</option>
+            <option value="BED_DESTROYED">Beds Destroyed</option>
+            <option value="FINAL_KILLS">Final Kills</option>
+            <option value="HIGHEST_WIN_STREAK">Highest Win Streak</option>
+            <option value="wins">Wins</option>
+            <option value="kills">Kills</option>
+            <option value="ARROWS_HIT">Arrows Hit</option>
+            <option value="BOW_KILLS">Bow Kills</option>
+            <!-- Add other Skywars stats here as needed -->
+        </select>
+        <label for="interval">Select Interval:</label>
+        <select id="interval">
+            <option value="total">Total</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+        </select>
+        <button onclick="fetchLeaderboard()">Fetch Leaderboard</button>
+    </div>
+
+    <div id="leaderboardData" class="profile-data">
+        Select game mode, stat, and interval to view leaderboard.
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function fetchProfileData() {
+            const playerIGN = document.getElementById('playerIGN').value.trim();
+            if (playerIGN === '') {
+                alert('Please enter a player IGN.');
+                return;
+            }
+
+            const apiUrl = `https://stats.pika-network.net/api/profile/${playerIGN}`;
+
+            $.ajax({
+                url: apiUrl,
+                type: 'GET',
+                success: function(data) {
+                    console.log(data); // For debugging purposes
+
+                    let html = '<h2>Profile Data</h2>';
+                    html += '<div><strong>Discord Verified:</strong> ' + (data.discord_verified ? 'Yes' : 'No') + '</div>';
+                    html += '<div><strong>Email Verified:</strong> ' + (data.email_verified ? 'Yes' : 'No') + '</div>';
+                    html += '<div><strong>Discord Boosting:</strong> ' + (data.discord_boosting ? 'Yes' : 'No') + '</div>';
+
+                    if (data.clan) {
+                        html += '<h3>Clan Information</h3>';
+                        html += '<div><strong>Name:</strong> ' + data.clan.name + '</div>';
+                        html += '<div><strong>Tag:</strong> ' + data.clan.tag + '</div>';
+                        html += '<div><strong>Current Trophies:</strong> ' + data.clan.currentTrophies + '</div>';
+                        html += '<div><strong>Creation Time:</strong> ' + data.clan.creationTime + '</div>';
+
+                        html += '<h4>Clan Members</h4>';
+                        html += '<ul>';
+                        data.clan.members.forEach(function(member) {
+                            html += '<li>' + member.user.username + ' (Joined: ' + member.joinDate + ')</li>';
+                        });
+                        html += '</ul>';
+                    }
+
+                    if (data.ranks && data.ranks.length > 0) {
+                        html += '<h3>Rank Information</h3>';
+                        html += '<ul>';
+                        data.ranks.forEach(function(rank) {
+                            html += '<li><strong>Name:</strong> ' + rank.displayName + '</li>';
+                            html += '<li><strong>Server:</strong> ' + rank.server + '</li>';
+                            html += '<li><strong>Season:</strong> ' + (rank.season ? rank.season : 'N/A') + '</li>';
+                            html += '<li><strong>Expiry:</strong> ' + rank.expiry + '</li>';
+                        });
+                        html += '</ul>';
+                    }
+
+                    if (data.friends) {
+                        html += '<h3>Friend List</h3>';
+                        html += '<ul>';
+                        data.friends.forEach(function(friend) {
+                            html += '<li><a href="#" onclick="fetchFriendProfile(\'' + friend.username + '\')">' + friend.username + '</a></li>';
+                        });
+                        html += '</ul>';
+                    }
+
+                    $('#profileData').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching profile data:', status, error);
+                    $('#profileData').html('<p>Error fetching profile data. Please try again later.</p>');
+                }
+            });
+        }
+
+        function fetchFriendProfile(username) {
+            const apiUrl = `https://stats.pika-network.net/api/profile/${username}`;
+
+            $.ajax({
+                url: apiUrl,
+                type: 'GET',
+                success: function(data) {
+                    console.log('Friend profile data:', data); // For debugging purposes
+
+                    let html = '<h2>' + username + '\'s Profile Data</h2>';
+                    html += '<div><strong>Discord Verified:</strong> ' + (data.discord_verified ? 'Yes' : 'No') + '</div>';
+                    html += '<div><strong>Email Verified:</strong> ' + (data.email_verified ? 'Yes' : 'No') + '</div>';
+                    html += '<div><strong>Discord Boosting:</strong> ' + (data.discord_boosting ? 'Yes' : 'No') + '</div>';
+
+                    if (data.clan) {
+                        html += '<h3>Clan Information</h3>';
+                        html += '<div><strong>Name:</strong> ' + data.clan.name + '</div>';
+                        html += '<div><strong>Tag:</strong> ' + data.clan.tag + '</div>';
+                        html += '<div><strong>Current Trophies:</strong> ' + data.clan.currentTrophies + '</div>';
+                        html += '<div><strong>Creation Time:</strong> ' + data.clan.creationTime + '</div>';
+
+                        html += '<h4>Clan Members</h4>';
+                        html += '<ul>';
+                        data.clan.members.forEach(function(member) {
+                            html += '<li>' + member.user.username + ' (Joined: ' + member.joinDate + ')</li>';
+                        });
+                        html += '</ul>';
+                    }
+
+                    if (data.ranks && data.ranks.length > 0) {
+                        html += '<h3>Rank Information</h3>';
+                        html += '<ul>';
+                        data.ranks.forEach(function(rank) {
+                            html += '<li><strong>Name:</strong> ' + rank.displayName + '</li>';
+                            html += '<li><strong>Server:</strong> ' + rank.server + '</li>';
+                            html += '<li><strong>Season:</strong> ' + (rank.season ? rank.season : 'N/A') + '</li>';
+                            html += '<li><strong>Expiry:</strong> ' + rank.expiry + '</li>';
+                        });
+                        html += '</ul>';
+                    }
+
+                    $('#profileData').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching friend profile data:', status, error);
+                    $('#profileData').html('<p>Error fetching friend profile data. Please try again later.</p>');
+                }
+            });
+        }
+
+        function fetchLeaderboard() {
+            const gameMode = document.getElementById('gameMode').value;
+            const stat = document.getElementById('stat').value;
+            const interval = document.getElementById('interval').value;
+            let apiUrl;
+
+            if (gameMode === 'bedwars') {
+                apiUrl = `https://stats.pika-network.net/api/leaderboards?type=${gameMode}&stat=${stat}&interval=${interval}&mode=ALL_MODES&offset=0&limit=10`;
+            } else if (gameMode === 'skywars') {
+                apiUrl = `https://stats.pika-network.net/api/profile/${playerIGN}/leaderboard?type=${gameMode}&interval=${interval}&mode=ALL_MODES`;
+            } else {
+                console.error('Invalid game mode selected.');
+                return;
+            }
+
+            $.ajax({
+                url: apiUrl,
+                type: 'GET',
+                success: function(data) {
+                    console.log('Leaderboard data:', data); // For debugging purposes
+
+                    let html = '<h2>' + gameMode.charAt(0).toUpperCase() + gameMode.slice(1) + ' Leaderboard - ' + interval.charAt(0).toUpperCase() + interval.slice(1) + '</h2>';
+                    html += '<ul>';
+                    if (gameMode === 'bedwars') {
+                        data.entries.forEach(function(entry) {
+                            html += '<li>' + entry.place + '. ' + entry.id + ' - ' + entry.value + '</li>';
+                        });
+                    } else if (gameMode === 'skywars') {
+                        Object.keys(data).forEach(function(key) {
+                            html += '<li>' + key + ': ' + data[key].entries[0].value + '</li>';
+                        });
+                    }
+                    html += '</ul>';
+
+                    $('#leaderboardData').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching leaderboard data:', status, error);
+                    $('#leaderboardData').html('<p>Error fetching leaderboard data. Please try again later.</p>');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
